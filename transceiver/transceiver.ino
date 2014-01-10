@@ -4,7 +4,7 @@
 byte mac[] = {0xDE, 0xCD, 0xAE, 0x0F, 0xFE, 0xED };
 
 EthernetClient client;
-IPAddress forwardHostIP(62,48,3,142);
+IPAddress forwardHostIP(80,74,143,90);
 
 int serialBufferLength = 0;
 int serialBufferLimit = 1000;
@@ -64,13 +64,13 @@ boolean forwardSerialData() {
   }
 
   client.println("POST /nrjfeed/ HTTP/1.1");
-  client.println("Host: www.widescreen.ch");
+  client.println("Host: www.elektronaut.ch");
   client.println("Connection: close");
   client.println("Content-Type: application/x-www-form-urlencoded");
   client.print("Content-Length: ");
   client.println(serialBufferLength+5);
   client.println();
-  client.print("data=");
+  client.print("feed=");
   client.println(serialBuffer);
   
   while ( client.connected() ) {

@@ -8,6 +8,8 @@ int lightValue = 0;
 int lightThreshold = 10;
 boolean isBright = true;
 
+boolean initialized = false;
+
 //Time
 unsigned long now = 0;
 
@@ -16,7 +18,6 @@ int transmissionIndicator = 0;
 unsigned long transmissionIdx = 0;
 
 //Transmission interval
-int precision = 1;
 unsigned long lastTransmission = 0;
 unsigned long rolloverInterval = 10000;
 
@@ -70,6 +71,7 @@ void rollover() {
     || maxDataLength <= dataLength
    ) {
      transmit();
+     
      lastTransmission = now;
      dataLength=0;
    }
@@ -88,6 +90,61 @@ void blinkTransmissionIndicator(){
   }
 }
 
+void measure() {
+  now = millis();
+  
+  lightValue = analogRead(inputPin);
+  
+  if ( lightValue > lightThreshold ) impulseOn();
+  else impulseOff();
+  
+  blinkTransmissionIndicator();
+  
+  rollover();
+  
+  delay(10);
+}
+/*
+int minLightValue = -1;
+int minLightValueHigh = -1;
+
+int maxLightValue = 0;
+int maxLightValueLow = 0;
+
+int middleLightValue = 0;
+
+void tuneIn() {
+  lightValue = analogRead(inputPin);
+  
+  if ( minLightValue < 0 ) {
+    minLightValue = lightValue;
+    maxLightValue = lightValue;
+    minLightValueHigh = lightValue;
+    maxLightValueLow = lightValue;
+  } else {
+    minLightValue = min(minLightValue,lightValue);
+    maxLightValue = max(maxLightValue,lightValue);
+    
+    int newMiddleLightValue = round((maxLightValue - minLightValue) / 2);
+    if ( newMiddleLightValue != middleLightValue ) {
+      middleLightValue = newMiddleLightValue;
+      minLightValueHigh = 0;
+      maxLightValueLow = lightValue;
+    } else {
+      if ( lightValue < middleLightValue) minLightValueHigh = max(minLightValueHigh,lightValue);
+      else maxLightValueLow = min(maxLightValueLow,lightValue);
+    }
+  }
+  
+  if( millis() > 3000 ) {
+    initialized = true;
+    //lightThreshold = middleLightValue;
+  }
+  
+  delay(10);
+}
+*/
+
 void setup() {
   pinMode(errorPin,OUTPUT);
   pinMode(impulsePin,OUTPUT);
@@ -101,16 +158,8 @@ void setup() {
 }
 
 void loop() {
-  now = millis()/precision;
-  
-  lightValue = analogRead(inputPin);
-  
-  if ( lightValue > lightThreshold ) impulseOn();
-  else impulseOff();
-  
-  blinkTransmissionIndicator();
-  
-  rollover();
-  
-  delay(1);
+  measure();
+  /*if ( initialized ) measure();
+  else tuneIn();
+  */
 }
