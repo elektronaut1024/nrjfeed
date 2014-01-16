@@ -6,7 +6,7 @@ byte mac[] = {0xDE, 0xCD, 0xAE, 0x0F, 0xFE, 0xED };
 boolean HTTP = true;
 EthernetClient client;
 IPAddress forwardHostIP(80,74,143,90);
-int forwardingDelay = 2000;
+int forwardingDelay = 15000;
 
 int serialBufferLength = 0;
 int serialBufferLimit = 1000;
@@ -16,21 +16,7 @@ boolean startedSerial = false;
 
 unsigned int waitInc = 1;
 
-boolean isStarted = false;
-
-boolean stopHTTP(){
-  if ( !isStarted ) return false;
-  
-  client.stop();
-  isStarted = false;
-  
-  return true;
-}
-
 boolean connectHTTP(){
-  if ( client.connected() ) return true;
-  stopHTTP();
-  
   if ( !client.connect(forwardHostIP, 80) ) {
     if ( Serial ) {
       Serial.print("failed to connect. waiting ");
@@ -40,12 +26,8 @@ boolean connectHTTP(){
     delay(waitInc);
     if ( waitInc < 32000 ) waitInc = waitInc * 2;
     
-    return false; //discard any data because it is lost anyway
+    return false;
   }
-  
-  isStarted = true;
-  
-  if ( Serial ) Serial.println("Connected");
   
   waitInc = 1;
   
@@ -65,6 +47,7 @@ void readSerialData() {
     if ( serialBufferLength >= serialBufferLimit ) {
       forward = true;
       Serial.println("buffer full");
+      serialBufferLength = 0;
       break;
     }
     char c = Serial1.read();
@@ -96,9 +79,6 @@ boolean forwardData(const char* data, const int length) {
   
   unsigned long now = millis();
   if ( now - lastForward < forwardingDelay ) {
-    if ( HTTP && !client.connected() && stopHTTP() ) {
-      if ( Serial ) Serial.println("Server disconnected");
-    }
     return false; //skip update
   }
   
@@ -112,6 +92,7 @@ boolean forwardData(const char* data, const int length) {
   client.println("POST /nrjfeed/ HTTP/1.1");
   client.println("Host: www.elektronaut.ch");
   client.println("Content-Type: application/x-www-form-urlencoded");
+  client.println("Connection: close");
   client.print("Content-Length: ");
   client.println(length+5);
   client.println();
@@ -123,56 +104,15 @@ boolean forwardData(const char* data, const int length) {
   return true;
 }
 
-int finishHeaderPos = 0;
-char finishHeader[] = "\r\n";
-boolean finishedHeader = false;
-
-int connectionCloseHeaderPos = 0;
-char connectionCloseHeader[] = "\r\nConnection: close";
-
 void finishForwarding(){
   if ( !forwarding ) return;
   
-  if ( !client.available() ) return;
-  if ( !finishedForwarding() ) return;
+  while ( client.connected() && client.available() ) client.read();
   
-  forwarding = false;
-}
-
-boolean finishedForwarding() {
-  while ( client.connected() && client.available() ) {
-    char c = client.read();
-    
-    if ( connectionCloseHeader[connectionCloseHeaderPos] == c ) {
-      connectionCloseHeaderPos++;
-      if ( connectionCloseHeader[connectionCloseHeaderPos] == 0 ) {
-        if ( Serial ) Serial.println("Server will close connection");
-        return true;
-      }
-    } else {
-      connectionCloseHeaderPos = 0;
-    }
- 
-    if ( finishHeader[finishHeaderPos] == c ) {
-      finishHeaderPos++;
-      if ( finishHeader[finishHeaderPos] == 0 ) {
-        if ( finishedHeader ) { //if a header was finished before, the whole header section is now terminated
-          if ( Serial ) Serial.println("Continue");
-          return true;
-        } else {
-          finishHeaderPos = 0;
-          finishedHeader = true;
-        }
-      }
-    } else {
-      finishHeaderPos = 0;
-      finishedHeader = false;
-    }
+  if ( !client.connected() ) {
+    forwarding = false;
+    client.stop();
   }
-  
-  if ( Serial ) Serial.println("Not finished");
-  
-  return false;
 }
 
 void setup() {
