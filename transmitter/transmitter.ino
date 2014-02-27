@@ -26,19 +26,10 @@ void setup() {
   Serial.begin(9600);
 }
 
-unsigned long lastImpulse = 0;
-
 void loop() {
   now = millis();
  
- if ( now - lastImpulse > 100 ) {
-   lightValue = lightThreshold + 1;
-   lastImpulse = now;
- } else {
-   lightValue = 0;
- }
- 
- //lightValue = analogRead(inputPin);
+  lightValue = analogRead(inputPin);
   
   if ( lightValue > lightThreshold ) impulseOn();
   else impulseOff();

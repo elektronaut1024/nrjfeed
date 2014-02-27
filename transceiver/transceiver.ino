@@ -6,7 +6,7 @@ byte mac[] = {0xDE, 0xCD, 0xAE, 0x0F, 0xFE, 0xED };
 boolean HTTP = true;
 EthernetClient client;
 IPAddress forwardHostIP(80,74,143,90);
-int forwardingDelay = 15000;
+int forwardingDelay = 5000;
 
 int serialBufferLength = 0;
 int serialBufferLimit = 1000;
